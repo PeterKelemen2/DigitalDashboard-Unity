@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class SpeedoHandler : MonoBehaviour
@@ -9,6 +10,7 @@ public class SpeedoHandler : MonoBehaviour
     public GameObject bg;
     public GameObject needle;
     public GameObject needle_overlay;
+    public GameObject accent;
     private int maxRotation = 320;
     private int maxSpeed = 250;
     private int maxRevs = 6;
@@ -48,9 +50,10 @@ public class SpeedoHandler : MonoBehaviour
                 maxRotation = 280;
                 maxSpeed = 242;
                 maxRevs = 6;
+                SetAccentTransparency();
                 break;
         }
-        
+
         Debug.Log("This is a:" + gameObject.tag);
         Debug.Log(circleRatio);
         gameManager = FindObjectOfType<GameManager>();
@@ -62,6 +65,11 @@ public class SpeedoHandler : MonoBehaviour
         {
             gameManager.changeStatusText("Moving needle!");
             rotateNeedleToSpeed(Random.Range(1, maxSpeed - 1));
+            if (gameObject.CompareTag("Revs"))
+            {
+                SetAccentTransparency();
+                Debug.Log("Rotation %: " + getRotationPercentage());
+            }
         }
 
         if (Input.GetKeyDown("e") && !isMovingNeedle && !isSweeping)
@@ -69,16 +77,40 @@ public class SpeedoHandler : MonoBehaviour
             gameManager.changeStatusText("Sweeping needle!");
             StartCoroutine(SweepSequence());
         }
+
+        if (gameObject.CompareTag("Revs"))
+        {
+            if (getRotationPercentage() > 30f)
+            {   
+                float newAlpha = (getRotationPercentage() - 30f) / (80f - 30f);
+                accent.GetComponent<RevCounterAccentHandler>().SetTransparency(newAlpha);
+            }
+        }
     }
 
+
+    private float getRotationPercentage()
+    {
+        float currentRotation = needle.transform.rotation.eulerAngles.z;
+        return currentRotation * 100 / maxRotation;
+    }
+
+    private void SetAccentTransparency()
+    {
+        if (accent.GetComponent<RevCounterAccentHandler>().VibeCheck())
+        {
+            accent.GetComponent<RevCounterAccentHandler>().SetTransparency(0.0f);
+        }
+    }
 
     private IEnumerator SweepSequence()
     {
         isSweeping = true;
+        float sweepDuration = 3f;
         yield return StartCoroutine(MoveNeedle(needle.transform.rotation.eulerAngles.z, 0f, 0.2f));
         yield return StartCoroutine(MoveNeedle(needle.transform.rotation.eulerAngles.z, 0f, 0.2f));
-        yield return StartCoroutine(MoveNeedle(0f, maxRotation, 0.5f));
-        yield return StartCoroutine(MoveNeedle(maxRotation, 0f, 0.5f, canUpdateStatus: true));
+        yield return StartCoroutine(MoveNeedle(0f, maxRotation, sweepDuration / 2));
+        yield return StartCoroutine(MoveNeedle(maxRotation, 0f, sweepDuration / 2, canUpdateStatus: true));
         isSweeping = false;
         yield return null;
     }

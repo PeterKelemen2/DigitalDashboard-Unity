@@ -8,6 +8,7 @@ TagManager:
   - SpeedoCenter
   - SpeedoNeedle
   - Revs
+  - RevAccent
   layers:
   - Default
   - TransparentFX
