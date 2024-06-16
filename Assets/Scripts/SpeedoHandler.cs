@@ -11,6 +11,7 @@ public class SpeedoHandler : MonoBehaviour
     public GameObject needle_overlay;
     private int maxRotation = 320;
     private int maxSpeed = 250;
+    private int maxRevs = 6;
 
     private float circleRatio = 360 / 320;
 
@@ -34,27 +35,31 @@ public class SpeedoHandler : MonoBehaviour
         Debug.Log("Needle moving to " + speed + "km/h (" + getRotationForSpeed(speed) + "°)");
     }
 
-
-    private void sweepNeedle()
-    {
-        StartCoroutine(SweepNeedleCoroutine(maxRotation));
-    }
-
     void Start()
     {
         Debug.Log("Script Started!");
+        switch (gameObject.tag)
+        {
+            case "Speedo":
+                maxRotation = 320;
+                maxSpeed = 250;
+                break;
+            case "Revs":
+                maxRotation = 280;
+                maxSpeed = 242;
+                maxRevs = 6;
+                break;
+        }
+        
+        Debug.Log("This is a:" + gameObject.tag);
         Debug.Log(circleRatio);
         gameManager = FindObjectOfType<GameManager>();
-        // gameManager.changeStatusText("This is from SpeedoHandler!");
-        // gameManager.GetComponent<GameManager>().changeStatusText("ASdasdasd");
     }
 
     void Update()
     {
         if (Input.GetKeyDown("space") && !isMovingNeedle)
         {
-            // rotateNeedleToSpeed(0);
-            // sweepNeedle();
             gameManager.changeStatusText("Moving needle!");
             rotateNeedleToSpeed(Random.Range(1, maxSpeed - 1));
         }
@@ -105,66 +110,5 @@ public class SpeedoHandler : MonoBehaviour
         {
             gameManager.changeStatusText("Waiting for input...");
         }
-    }
-
-    private IEnumerator SweepNeedleCoroutine(float targetRotation)
-    {
-        // Calculate the current rotation
-        rotateNeedleToSpeed(0);
-        float currentRotation = needle.transform.rotation.eulerAngles.z;
-
-        // Calculate the difference in rotation we need to cover
-        float angleDiff = Mathf.DeltaAngle(currentRotation, targetRotation);
-
-        // Define speed and duration for the sweep
-        float sweepSpeed = 40f; // Adjust speed as needed
-        float duration = Mathf.Abs(angleDiff) / sweepSpeed;
-
-        // Time elapsed
-        float timeElapsed = 0f;
-
-        // While time elapsed is less than duration, interpolate the rotation
-        while (timeElapsed < duration)
-        {
-            // Calculate the interpolation ratio based on elapsed time and duration
-            float t = timeElapsed / duration;
-
-            float smoothT = Mathf.SmoothStep(1f, 0f, t);
-
-            // float newRotation = Mathf.Lerp(currentRotation, targetRotation, t);
-            float newRotation = Mathf.Lerp(targetRotation, currentRotation, smoothT);
-            // Quaternion newRotation = Quaternion.Euler(0f, 180f, Mathf.Lerp(currentRotation, targetRotation, t));
-            // needle.transform.rotation = newRotation;
-            needle.transform.rotation = Quaternion.Euler(0f, 180f, newRotation);
-
-
-            // Increment time elapsed by the time since last frame
-            timeElapsed += Time.deltaTime;
-
-            // Yield control until the next frame
-            yield return null;
-        }
-
-        timeElapsed = 0f;
-        while (timeElapsed < duration)
-        {
-            // Calculate the interpolation ratio based on elapsed time and duration
-            float t = timeElapsed / duration;
-
-            float smoothT = Mathf.SmoothStep(0f, 1f, t);
-            float newRotation = Mathf.Lerp(targetRotation, currentRotation, smoothT);
-            needle.transform.rotation = Quaternion.Euler(0f, 180f, newRotation);
-            // Quaternion newRotation = Quaternion.Euler(0f, 180f, Mathf.Lerp(targetRotation, currentRotation, t));
-            // needle.transform.rotation = newRotation;
-
-            // Increment time elapsed by the time since last frame
-            timeElapsed += Time.deltaTime;
-
-            // Yield control until the next frame
-            yield return null;
-        }
-
-        // Ensure the needle reaches exactly the target rotation
-        needle.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
     }
 }
