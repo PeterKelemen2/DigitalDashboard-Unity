@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class SpeedoHandler : MonoBehaviour
 {
+    private GameManager gameManager;
     public GameObject bg;
     public GameObject needle;
     public GameObject needle_overlay;
@@ -12,6 +13,10 @@ public class SpeedoHandler : MonoBehaviour
     private int maxSpeed = 250;
 
     private float circleRatio = 360 / 320;
+
+    private bool isMovingNeedle = false;
+    private bool isSweeping = false;
+
 
     private float getRotationForSpeed(int value)
     {
@@ -22,9 +27,11 @@ public class SpeedoHandler : MonoBehaviour
 
     private void rotateNeedleToSpeed(int speed)
     {
-        Vector3 targetRotation = new Vector3(0f, 180f, getRotationForSpeed(speed));
-        needle.transform.rotation = Quaternion.Euler(targetRotation);
-        Debug.Log("Needle rotated to " + getRotationForSpeed(speed) + " degrees.");
+        float targetRotation = getRotationForSpeed(speed);
+        float currentRotation = needle.transform.rotation.eulerAngles.z;
+        // needle.transform.rotation = Quaternion.Euler(targetRotation);
+        StartCoroutine(MoveNeedle(currentRotation, targetRotation, canUpdateStatus: true));
+        Debug.Log("Needle moving to " + speed + "km/h (" + getRotationForSpeed(speed) + "°)");
     }
 
 
@@ -37,14 +44,66 @@ public class SpeedoHandler : MonoBehaviour
     {
         Debug.Log("Script Started!");
         Debug.Log(circleRatio);
+        gameManager = FindObjectOfType<GameManager>();
+        // gameManager.changeStatusText("This is from SpeedoHandler!");
+        // gameManager.GetComponent<GameManager>().changeStatusText("ASdasdasd");
     }
 
     void Update()
     {
-        if (Input.GetKeyDown("space"))
+        if (Input.GetKeyDown("space") && !isMovingNeedle)
         {
-            rotateNeedleToSpeed(0);
-            sweepNeedle();
+            // rotateNeedleToSpeed(0);
+            // sweepNeedle();
+            gameManager.changeStatusText("Moving needle!");
+            rotateNeedleToSpeed(Random.Range(1, maxSpeed - 1));
+        }
+
+        if (Input.GetKeyDown("e") && !isMovingNeedle && !isSweeping)
+        {
+            gameManager.changeStatusText("Sweeping needle!");
+            StartCoroutine(SweepSequence());
+        }
+    }
+
+
+    private IEnumerator SweepSequence()
+    {
+        isSweeping = true;
+        yield return StartCoroutine(MoveNeedle(needle.transform.rotation.eulerAngles.z, 0f, 0.2f));
+        yield return StartCoroutine(MoveNeedle(needle.transform.rotation.eulerAngles.z, 0f, 0.2f));
+        yield return StartCoroutine(MoveNeedle(0f, maxRotation, 0.5f));
+        yield return StartCoroutine(MoveNeedle(maxRotation, 0f, 0.5f, canUpdateStatus: true));
+        isSweeping = false;
+        yield return null;
+    }
+
+    private IEnumerator MoveNeedle(float currentRot, float targetRot, float duration = 0.3f,
+        bool canUpdateStatus = false)
+    {
+        isMovingNeedle = true;
+
+        // float duration = 0.3f;
+        float timeElapsed = 0f;
+
+        while (timeElapsed < duration)
+        {
+            float t = timeElapsed / duration;
+
+            float smoothT = Mathf.SmoothStep(1f, 0f, t);
+
+            float newRotation = Mathf.Lerp(targetRot, currentRot, smoothT);
+            needle.transform.rotation = Quaternion.Euler(0f, 180f, newRotation);
+
+            timeElapsed += Time.deltaTime;
+
+            yield return null;
+        }
+
+        isMovingNeedle = false;
+        if (canUpdateStatus)
+        {
+            gameManager.changeStatusText("Waiting for input...");
         }
     }
 
@@ -91,7 +150,7 @@ public class SpeedoHandler : MonoBehaviour
         {
             // Calculate the interpolation ratio based on elapsed time and duration
             float t = timeElapsed / duration;
-            
+
             float smoothT = Mathf.SmoothStep(0f, 1f, t);
             float newRotation = Mathf.Lerp(targetRotation, currentRotation, smoothT);
             needle.transform.rotation = Quaternion.Euler(0f, 180f, newRotation);
